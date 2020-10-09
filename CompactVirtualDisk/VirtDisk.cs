@@ -4,8 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
-using ULONGLONG = System.UInt64;
-//using ULONG = System.UInt32;
 
 namespace CompactVirtualDisk
 {
@@ -169,8 +167,8 @@ namespace CompactVirtualDisk
 
         public struct Size
         {
-            public ULONGLONG VirtualSize;
-            public ULONGLONG PhysicalSize;
+            public UInt64 VirtualSize;
+            public UInt64 PhysicalSize;
             public UInt32 BlockSize;
             public UInt32 SectorSize;
         };
@@ -214,7 +212,7 @@ namespace CompactVirtualDisk
             [FieldOffset(8)]
             public UInt32 VhdPhysicalSectorSize;
             [FieldOffset(8)]
-            public ULONGLONG SmallestSafeVirtualSize;
+            public UInt64 SmallestSafeVirtualSize;
 
             // GET_VIRTUAL_DISK_INFO_FRAGMENTATION
             [FieldOffset(8)]
