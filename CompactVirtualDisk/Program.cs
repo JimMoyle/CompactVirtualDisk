@@ -18,14 +18,15 @@ namespace CompactVirtualDisk
             vst.DeviceId = VirtDisk.VIRTUAL_STORAGE_TYPE_DEVICE_VHDX;
             vst.VendorId = VirtDisk.VIRTUAL_STORAGE_TYPE_VENDOR_MICROSOFT;
             VirtDisk.VIRTUAL_DISK_ACCESS_MASK mask = VirtDisk.VIRTUAL_DISK_ACCESS_MASK.VIRTUAL_DISK_ACCESS_METAOPS;
+            VirtualDiskSafeHandle virtualDiskHandle = new VirtualDiskSafeHandle();
+
             if (FileSystemAware)
             {
                 mask |= VirtDisk.VIRTUAL_DISK_ACCESS_MASK.VIRTUAL_DISK_ACCESS_ATTACH_RO;
             }
 
-            IntPtr hVirtDisk;// = IntPtr.Zero;
-            UInt32 res;
-            res = VirtDisk.OpenVirtualDisk(ref vst, vhdx, mask, VirtDisk.OPEN_VIRTUAL_DISK_FLAG.OPEN_VIRTUAL_DISK_FLAG_NONE, IntPtr.Zero, out hVirtDisk);
+            UInt32 res = 0;
+            res = VirtDisk.OpenVirtualDisk(ref vst, vhdx, mask, VirtDisk.OPEN_VIRTUAL_DISK_FLAG.OPEN_VIRTUAL_DISK_FLAG_NONE, IntPtr.Zero, ref virtualDiskHandle);
             if (res == VirtDisk.ERROR_SUCCESS)
             {
                 ManualResetEvent stateChangeEvent = new ManualResetEvent(false);
@@ -33,7 +34,7 @@ namespace CompactVirtualDisk
                 Overlapped.hEvent = stateChangeEvent.SafeWaitHandle.DangerousGetHandle();
                 VirtDisk.VIRTUAL_DISK_PROGRESS Progress = new VirtDisk.VIRTUAL_DISK_PROGRESS();
            
-                res = VirtDisk.CompactVirtualDisk(hVirtDisk, VirtDisk.COMPACT_VIRTUAL_DISK_FLAG.COMPACT_VIRTUAL_DISK_FLAG_NONE, IntPtr.Zero, ref Overlapped);
+                res = VirtDisk.CompactVirtualDisk(virtualDiskHandle, VirtDisk.COMPACT_VIRTUAL_DISK_FLAG.COMPACT_VIRTUAL_DISK_FLAG_NONE, IntPtr.Zero, ref Overlapped);
                 if (res != VirtDisk.ERROR_SUCCESS && res != VirtDisk.ERROR_IO_PENDING)
                 {
                     // throw some nice error message here perhaps as something went wrong
@@ -43,13 +44,14 @@ namespace CompactVirtualDisk
                 bool bPending = true;
                 while (bPending)
                 {
-                    res = VirtDisk.GetVirtualDiskOperationProgress(hVirtDisk, ref Overlapped, ref Progress);
+                    res = VirtDisk.GetVirtualDiskOperationProgress(virtualDiskHandle, ref Overlapped, ref Progress);
                     if (res == VirtDisk.ERROR_SUCCESS && Progress.OperationStatus == VirtDisk.ERROR_IO_PENDING)
                     {
                         var Percentage = (Progress.CurrentValue / Progress.CompletionValue) *100;
                         Console.WriteLine("Percentage: {0}", Percentage);
                         bPending = stateChangeEvent.WaitOne(100); // use no interval to wait until finished, but using some interval gives you time to show some busy indicator
                     }
+                    // #todo error handling
                     else
                     {
                         break;
@@ -57,7 +59,6 @@ namespace CompactVirtualDisk
                 }
 
                 bResult = Progress.OperationStatus == VirtDisk.ERROR_SUCCESS;
-                VirtDisk.CloseHandle(hVirtDisk);
             }
 
             return bResult;
@@ -69,16 +70,17 @@ namespace CompactVirtualDisk
             VirtDisk.VIRTUAL_STORAGE_TYPE vst = new VirtDisk.VIRTUAL_STORAGE_TYPE();
             vst.DeviceId = VirtDisk.VIRTUAL_STORAGE_TYPE_DEVICE_VHDX;
             vst.VendorId = VirtDisk.VIRTUAL_STORAGE_TYPE_VENDOR_MICROSOFT;
-            IntPtr hVirtDisk;// = IntPtr.Zero;
+//            IntPtr hVirtDisk = IntPtr.Zero;
             UInt32 res;
-            res = VirtDisk.OpenVirtualDisk(ref vst, vhdx, VirtDisk.VIRTUAL_DISK_ACCESS_MASK.VIRTUAL_DISK_ACCESS_GET_INFO, VirtDisk.OPEN_VIRTUAL_DISK_FLAG.OPEN_VIRTUAL_DISK_FLAG_NONE, IntPtr.Zero, out hVirtDisk);
+            VirtualDiskSafeHandle virtualDiskHandle = new VirtualDiskSafeHandle();
+            res = VirtDisk.OpenVirtualDisk(ref vst, vhdx, VirtDisk.VIRTUAL_DISK_ACCESS_MASK.VIRTUAL_DISK_ACCESS_GET_INFO, VirtDisk.OPEN_VIRTUAL_DISK_FLAG.OPEN_VIRTUAL_DISK_FLAG_NONE, IntPtr.Zero, ref virtualDiskHandle);
             if (res == VirtDisk.ERROR_SUCCESS)
             {
                 VirtDisk.GET_VIRTUAL_DISK_INFO vdi = new VirtDisk.GET_VIRTUAL_DISK_INFO();
                 vdi.Version = VirtDisk.GET_VIRTUAL_DISK_INFO_VERSION.GET_VIRTUAL_DISK_INFO_PROVIDER_SUBTYPE;
                 ulong size = 32;
 
-                res = VirtDisk.GetVirtualDiskInformation(hVirtDisk, ref size, ref vdi, IntPtr.Zero);
+                res = VirtDisk.GetVirtualDiskInformation(virtualDiskHandle, ref size, ref vdi, IntPtr.Zero);
 
                 if (res == VirtDisk.ERROR_SUCCESS)
                 {
@@ -100,7 +102,7 @@ namespace CompactVirtualDisk
                 }
 
                 vdi.Version = VirtDisk.GET_VIRTUAL_DISK_INFO_VERSION.GET_VIRTUAL_DISK_INFO_SIZE;
-                res = VirtDisk.GetVirtualDiskInformation(hVirtDisk, ref size, ref vdi, IntPtr.Zero);
+                res = VirtDisk.GetVirtualDiskInformation(virtualDiskHandle, ref size, ref vdi, IntPtr.Zero);
 
                 if (res == VirtDisk.ERROR_SUCCESS)
                 {
@@ -109,76 +111,76 @@ namespace CompactVirtualDisk
                 }
 
                 vdi.Version = VirtDisk.GET_VIRTUAL_DISK_INFO_VERSION.GET_VIRTUAL_DISK_INFO_CHANGE_TRACKING_STATE;
-                res = VirtDisk.GetVirtualDiskInformation(hVirtDisk, ref size, ref vdi, IntPtr.Zero);
+                res = VirtDisk.GetVirtualDiskInformation(virtualDiskHandle, ref size, ref vdi, IntPtr.Zero);
                 if (res == VirtDisk.ERROR_SUCCESS)
                 {
                     Console.WriteLine("Change Tracking Enabled: {0}", vdi.ChangeTracking.Enabled);
                 }
 
                 vdi.Version = VirtDisk.GET_VIRTUAL_DISK_INFO_VERSION.GET_VIRTUAL_DISK_INFO_IS_4K_ALIGNED;
-                res = VirtDisk.GetVirtualDiskInformation(hVirtDisk, ref size, ref vdi, IntPtr.Zero);
+                res = VirtDisk.GetVirtualDiskInformation(virtualDiskHandle, ref size, ref vdi, IntPtr.Zero);
                 if (res == VirtDisk.ERROR_SUCCESS)
                 {
                     Console.WriteLine("Is aligned at 4KB: {0}", vdi.Is4kAligned);
                 }
 
                 vdi.Version = VirtDisk.GET_VIRTUAL_DISK_INFO_VERSION.GET_VIRTUAL_DISK_INFO_FRAGMENTATION;
-                res = VirtDisk.GetVirtualDiskInformation(hVirtDisk, ref size, ref vdi, IntPtr.Zero);
+                res = VirtDisk.GetVirtualDiskInformation(virtualDiskHandle, ref size, ref vdi, IntPtr.Zero);
                 if (res == VirtDisk.ERROR_SUCCESS)
                 {
                     Console.WriteLine("Fragmention: {0}%", vdi.FragmentationPercentage);
                 }
 
                 vdi.Version = VirtDisk.GET_VIRTUAL_DISK_INFO_VERSION.GET_VIRTUAL_DISK_INFO_IS_LOADED;
-                res = VirtDisk.GetVirtualDiskInformation(hVirtDisk, ref size, ref vdi, IntPtr.Zero);
+                res = VirtDisk.GetVirtualDiskInformation(virtualDiskHandle, ref size, ref vdi, IntPtr.Zero);
                 if (res == VirtDisk.ERROR_SUCCESS)
                 {
                     Console.WriteLine("Mounted: {0}", vdi.IsLoaded);
                 }
 
                 vdi.Version = VirtDisk.GET_VIRTUAL_DISK_INFO_VERSION.GET_VIRTUAL_DISK_INFO_VIRTUAL_DISK_ID;
-                res = VirtDisk.GetVirtualDiskInformation(hVirtDisk, ref size, ref vdi, IntPtr.Zero);
+                res = VirtDisk.GetVirtualDiskInformation(virtualDiskHandle, ref size, ref vdi, IntPtr.Zero);
                 if (res == VirtDisk.ERROR_SUCCESS)
                 {
                     Console.WriteLine("Identifier: {0}", vdi.Identifier);
                 }
 
                 vdi.Version = VirtDisk.GET_VIRTUAL_DISK_INFO_VERSION.GET_VIRTUAL_DISK_INFO_SMALLEST_SAFE_VIRTUAL_SIZE;
-                res = VirtDisk.GetVirtualDiskInformation(hVirtDisk, ref size, ref vdi, IntPtr.Zero);
+                res = VirtDisk.GetVirtualDiskInformation(virtualDiskHandle, ref size, ref vdi, IntPtr.Zero);
                 if (res == VirtDisk.ERROR_SUCCESS)
                 {
                     Console.WriteLine("Smallest Safe Virtual Size: {0}", vdi.SmallestSafeVirtualSize);
                 }
 
                 vdi.Version = VirtDisk.GET_VIRTUAL_DISK_INFO_VERSION.GET_VIRTUAL_DISK_INFO_PHYSICAL_DISK;
-                res = VirtDisk.GetVirtualDiskInformation(hVirtDisk, ref size, ref vdi, IntPtr.Zero);
+                res = VirtDisk.GetVirtualDiskInformation(virtualDiskHandle, ref size, ref vdi, IntPtr.Zero);
                 if (res == VirtDisk.ERROR_SUCCESS)
                 {
                     Console.WriteLine("Physical Disk Info, Remote: {0} LogicalSectorSize: {1} PhysicalSectorSize: {2}", vdi.PhysicalDisk.IsRemote, vdi.PhysicalDisk.LogicalSectorSize, vdi.PhysicalDisk.PhysicalSectorSize);
                 }
 
                 vdi.Version = VirtDisk.GET_VIRTUAL_DISK_INFO_VERSION.GET_VIRTUAL_DISK_INFO_VHD_PHYSICAL_SECTOR_SIZE;
-                res = VirtDisk.GetVirtualDiskInformation(hVirtDisk, ref size, ref vdi, IntPtr.Zero);
+                res = VirtDisk.GetVirtualDiskInformation(virtualDiskHandle, ref size, ref vdi, IntPtr.Zero);
                 if (res == VirtDisk.ERROR_SUCCESS)
                 {
                     Console.WriteLine("Physical Sector Size: {0}", vdi.VhdPhysicalSectorSize);
                 }
 
                 vdi.Version = VirtDisk.GET_VIRTUAL_DISK_INFO_VERSION.GET_VIRTUAL_DISK_INFO_PARENT_IDENTIFIER;
-                res = VirtDisk.GetVirtualDiskInformation(hVirtDisk, ref size, ref vdi, IntPtr.Zero);
+                res = VirtDisk.GetVirtualDiskInformation(virtualDiskHandle, ref size, ref vdi, IntPtr.Zero);
                 if (res == VirtDisk.ERROR_SUCCESS)
                 {
                     Console.WriteLine("Parent Identifier (only for differencing disks): {0}", vdi.ParentIdentifier);
 
                     vdi.Version = VirtDisk.GET_VIRTUAL_DISK_INFO_VERSION.GET_VIRTUAL_DISK_INFO_PARENT_LOCATION;
-                    res = VirtDisk.GetVirtualDiskInformation(hVirtDisk, ref size, ref vdi, IntPtr.Zero);
+                    res = VirtDisk.GetVirtualDiskInformation(virtualDiskHandle, ref size, ref vdi, IntPtr.Zero);
                     if (res == VirtDisk.ERROR_SUCCESS)
                     {
                         Console.WriteLine("Parent Location (only for differencing disks): Resolved: {0} Location: {1}", vdi.ParentLocation.ParentResolved, vdi.ParentLocation.ParentLocationBuffer);
                     }
 
                     vdi.Version = VirtDisk.GET_VIRTUAL_DISK_INFO_VERSION.GET_VIRTUAL_DISK_INFO_PARENT_TIMESTAMP;
-                    res = VirtDisk.GetVirtualDiskInformation(hVirtDisk, ref size, ref vdi, IntPtr.Zero);
+                    res = VirtDisk.GetVirtualDiskInformation(virtualDiskHandle, ref size, ref vdi, IntPtr.Zero);
                     if (res == VirtDisk.ERROR_SUCCESS)
                     {
                         Console.WriteLine("Parent TimeStamp (only for differencing disks): Resolved: {0}", vdi.ParentTimestamp);

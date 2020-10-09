@@ -284,6 +284,7 @@ namespace CompactVirtualDisk
 
             [FieldOffset(8)]
             public UInt32 VhdPhysicalSectorSize;
+
             [FieldOffset(8)]
             public UInt64 SmallestSafeVirtualSize;
 
@@ -369,7 +370,7 @@ namespace CompactVirtualDisk
                VIRTUAL_DISK_ACCESS_MASK VirtualDiskAccessMask,
                OPEN_VIRTUAL_DISK_FLAG Flags,
                ref OPEN_VIRTUAL_DISK_PARAMETERS Parameters,
-               out IntPtr Handle);
+               ref VirtualDiskSafeHandle Handle);
 
         [DllImport("VirtDisk.dll", CharSet = CharSet.Unicode, SetLastError = false)]
         public static extern UInt32 OpenVirtualDisk(
@@ -378,47 +379,47 @@ namespace CompactVirtualDisk
                VIRTUAL_DISK_ACCESS_MASK VirtualDiskAccessMask,
                OPEN_VIRTUAL_DISK_FLAG Flags,
                IntPtr Parameters,// to make it optional (pass IntPtr.Zero)
-               out IntPtr Handle);
+               ref VirtualDiskSafeHandle Handle);
 
 
         [DllImport("VirtDisk.dll", CharSet = CharSet.Unicode, SetLastError = false)]
         public static extern UInt32 GetVirtualDiskInformation(
-            IntPtr VirtualDiskHandle,
+            VirtualDiskSafeHandle VirtualDiskHandle,
             ref ulong VirtualDiskInfoSize,
             ref GET_VIRTUAL_DISK_INFO VirtualDiskInfo,
             ref ulong SizeUsed);
 
         [DllImport("VirtDisk.dll", CharSet = CharSet.Unicode, SetLastError = false)]
         public static extern UInt32 GetVirtualDiskInformation(
-            IntPtr VirtualDiskHandle,
+            VirtualDiskSafeHandle VirtualDiskHandle,
             ref ulong VirtualDiskInfoSize,
             ref GET_VIRTUAL_DISK_INFO VirtualDiskInfo,
             IntPtr SizeUsed);// to make it optional (pass IntPtr.Zero)
 
         [DllImport("VirtDisk.dll", CharSet = CharSet.Unicode, SetLastError = false)]
         public static extern UInt32 CompactVirtualDisk(
-            IntPtr VirtualDiskHandle,
+            VirtualDiskSafeHandle VirtualDiskHandle,
             COMPACT_VIRTUAL_DISK_FLAG Flags,
             ref COMPACT_VIRTUAL_DISK_PARAMETERS Parameters,
             ref OVERLAPPED Overlapped);
 
         [DllImport("VirtDisk.dll", CharSet = CharSet.Unicode, SetLastError = false)]
         public static extern UInt32 CompactVirtualDisk(
-            IntPtr VirtualDiskHandle,
+            VirtualDiskSafeHandle VirtualDiskHandle,
             COMPACT_VIRTUAL_DISK_FLAG Flags,
             IntPtr Parameters,// to make it optional (pass IntPtr.Zero)
             ref OVERLAPPED Overlapped);
 
         [DllImport("VirtDisk.dll", CharSet = CharSet.Unicode, SetLastError = false)]
         public static extern UInt32 CompactVirtualDisk(
-            IntPtr VirtualDiskHandle,
+            VirtualDiskSafeHandle VirtualDiskHandle,
             COMPACT_VIRTUAL_DISK_FLAG Flags,
             IntPtr Parameters,// to make it optional (pass IntPtr.Zero)
             IntPtr Overlapped); // to make it optional (pass IntPtr.Zero)
 
         [DllImport("VirtDisk.dll", CharSet = CharSet.Unicode, SetLastError = false)]
         public static extern UInt32 GetVirtualDiskOperationProgress(
-          IntPtr VirtualDiskHandle,
+          VirtualDiskSafeHandle VirtualDiskHandle,
           ref OVERLAPPED Overlapped,
           ref VIRTUAL_DISK_PROGRESS Progress);
 
