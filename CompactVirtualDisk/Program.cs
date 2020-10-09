@@ -12,7 +12,7 @@ namespace CompactVirtualDisk
     {
         static bool CompactVHD(bool FileSystemAware)
         {
-            string vhdx = @"c:\Temp\vhdx\test.vhdx";
+            string vhdx = @"c:\Temp\vhdx\test - Copy.vhdx";
             bool bResult = false;
             VirtDisk.VIRTUAL_STORAGE_TYPE vst = new VirtDisk.VIRTUAL_STORAGE_TYPE();
             vst.DeviceId = VirtDisk.VIRTUAL_STORAGE_TYPE_DEVICE_VHDX;
@@ -104,10 +104,91 @@ namespace CompactVirtualDisk
 
                 if (res == VirtDisk.ERROR_SUCCESS)
                 {
-                    Console.WriteLine("BlockSize: {0}  SectorSize: {1}", vdi.size.BlockSize, vdi.size.SectorSize);
-                    Console.WriteLine("PhysicalSize: {0} VirtualSize: {1}", vdi.size.PhysicalSize, vdi.size.VirtualSize);
+                    Console.WriteLine("BlockSize: {0}  SectorSize: {1}", vdi.Size.BlockSize, vdi.Size.SectorSize);
+                    Console.WriteLine("PhysicalSize: {0} VirtualSize: {1}", vdi.Size.PhysicalSize, vdi.Size.VirtualSize);
                 }
-                VirtDisk.CloseHandle(hVirtDisk);
+
+                vdi.Version = VirtDisk.GET_VIRTUAL_DISK_INFO_VERSION.GET_VIRTUAL_DISK_INFO_CHANGE_TRACKING_STATE;
+                res = VirtDisk.GetVirtualDiskInformation(hVirtDisk, ref size, ref vdi, IntPtr.Zero);
+                if (res == VirtDisk.ERROR_SUCCESS)
+                {
+                    Console.WriteLine("Change Tracking Enabled: {0}", vdi.ChangeTracking.Enabled);
+                }
+
+                vdi.Version = VirtDisk.GET_VIRTUAL_DISK_INFO_VERSION.GET_VIRTUAL_DISK_INFO_IS_4K_ALIGNED;
+                res = VirtDisk.GetVirtualDiskInformation(hVirtDisk, ref size, ref vdi, IntPtr.Zero);
+                if (res == VirtDisk.ERROR_SUCCESS)
+                {
+                    Console.WriteLine("Is aligned at 4KB: {0}", vdi.Is4kAligned);
+                }
+
+                vdi.Version = VirtDisk.GET_VIRTUAL_DISK_INFO_VERSION.GET_VIRTUAL_DISK_INFO_FRAGMENTATION;
+                res = VirtDisk.GetVirtualDiskInformation(hVirtDisk, ref size, ref vdi, IntPtr.Zero);
+                if (res == VirtDisk.ERROR_SUCCESS)
+                {
+                    Console.WriteLine("Fragmention: {0}%", vdi.FragmentationPercentage);
+                }
+
+                vdi.Version = VirtDisk.GET_VIRTUAL_DISK_INFO_VERSION.GET_VIRTUAL_DISK_INFO_IS_LOADED;
+                res = VirtDisk.GetVirtualDiskInformation(hVirtDisk, ref size, ref vdi, IntPtr.Zero);
+                if (res == VirtDisk.ERROR_SUCCESS)
+                {
+                    Console.WriteLine("Mounted: {0}", vdi.IsLoaded);
+                }
+
+                vdi.Version = VirtDisk.GET_VIRTUAL_DISK_INFO_VERSION.GET_VIRTUAL_DISK_INFO_VIRTUAL_DISK_ID;
+                res = VirtDisk.GetVirtualDiskInformation(hVirtDisk, ref size, ref vdi, IntPtr.Zero);
+                if (res == VirtDisk.ERROR_SUCCESS)
+                {
+                    Console.WriteLine("Identifier: {0}", vdi.Identifier);
+                }
+
+                vdi.Version = VirtDisk.GET_VIRTUAL_DISK_INFO_VERSION.GET_VIRTUAL_DISK_INFO_SMALLEST_SAFE_VIRTUAL_SIZE;
+                res = VirtDisk.GetVirtualDiskInformation(hVirtDisk, ref size, ref vdi, IntPtr.Zero);
+                if (res == VirtDisk.ERROR_SUCCESS)
+                {
+                    Console.WriteLine("Smallest Safe Virtual Size: {0}", vdi.SmallestSafeVirtualSize);
+                }
+
+                vdi.Version = VirtDisk.GET_VIRTUAL_DISK_INFO_VERSION.GET_VIRTUAL_DISK_INFO_PHYSICAL_DISK;
+                res = VirtDisk.GetVirtualDiskInformation(hVirtDisk, ref size, ref vdi, IntPtr.Zero);
+                if (res == VirtDisk.ERROR_SUCCESS)
+                {
+                    Console.WriteLine("Physical Disk Info, Remote: {0} LogicalSectorSize: {1} PhysicalSectorSize: {2}", vdi.PhysicalDisk.IsRemote, vdi.PhysicalDisk.LogicalSectorSize, vdi.PhysicalDisk.PhysicalSectorSize);
+                }
+
+                vdi.Version = VirtDisk.GET_VIRTUAL_DISK_INFO_VERSION.GET_VIRTUAL_DISK_INFO_VHD_PHYSICAL_SECTOR_SIZE;
+                res = VirtDisk.GetVirtualDiskInformation(hVirtDisk, ref size, ref vdi, IntPtr.Zero);
+                if (res == VirtDisk.ERROR_SUCCESS)
+                {
+                    Console.WriteLine("Physical Sector Size: {0}", vdi.VhdPhysicalSectorSize);
+                }
+
+                vdi.Version = VirtDisk.GET_VIRTUAL_DISK_INFO_VERSION.GET_VIRTUAL_DISK_INFO_PARENT_IDENTIFIER;
+                res = VirtDisk.GetVirtualDiskInformation(hVirtDisk, ref size, ref vdi, IntPtr.Zero);
+                if (res == VirtDisk.ERROR_SUCCESS)
+                {
+                    Console.WriteLine("Parent Identifier (only for differencing disks): {0}", vdi.ParentIdentifier);
+
+                    vdi.Version = VirtDisk.GET_VIRTUAL_DISK_INFO_VERSION.GET_VIRTUAL_DISK_INFO_PARENT_LOCATION;
+                    res = VirtDisk.GetVirtualDiskInformation(hVirtDisk, ref size, ref vdi, IntPtr.Zero);
+                    if (res == VirtDisk.ERROR_SUCCESS)
+                    {
+                        Console.WriteLine("Parent Location (only for differencing disks): Resolved: {0} Location: {1}", vdi.ParentLocation.ParentResolved, vdi.ParentLocation.ParentLocationBuffer);
+                    }
+
+                    vdi.Version = VirtDisk.GET_VIRTUAL_DISK_INFO_VERSION.GET_VIRTUAL_DISK_INFO_PARENT_TIMESTAMP;
+                    res = VirtDisk.GetVirtualDiskInformation(hVirtDisk, ref size, ref vdi, IntPtr.Zero);
+                    if (res == VirtDisk.ERROR_SUCCESS)
+                    {
+                        Console.WriteLine("Parent TimeStamp (only for differencing disks): Resolved: {0}", vdi.ParentTimestamp);
+                    }
+                }
+                else if (res == VirtDisk.ERROR_VHD_INVALID_TYPE)
+                {
+                    Console.WriteLine("Not a Differencing disk");
+                }
+
 
                 bool bRes;
                 bRes = CompactVHD(true);

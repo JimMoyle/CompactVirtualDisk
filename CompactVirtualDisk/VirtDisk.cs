@@ -31,6 +31,7 @@ namespace CompactVirtualDisk
     {
         public const UInt32 ERROR_SUCCESS = 0;
         public const UInt32 ERROR_IO_PENDING = 997;
+        public const UInt32 ERROR_VHD_INVALID_TYPE = 0xC03A001B;
 
         public const UInt32 VIRTUAL_STORAGE_TYPE_DEVICE_UNKNOWN = 0;
         public const UInt32 VIRTUAL_STORAGE_TYPE_DEVICE_ISO     = 1;
@@ -172,36 +173,72 @@ namespace CompactVirtualDisk
             public Version3 version3;
         };
 
-        public struct ParentLocation
+        [StructLayout(LayoutKind.Explicit, Size = 8, Pack = 4, CharSet = CharSet.Unicode)] // check size
+        public struct ParentLocationUnion
         {
+            [FieldOffset(0)]
             public bool ParentResolved;
-            public IntPtr ParentLocationBuffer;
+            [FieldOffset(4)]
+            internal IntPtr _ParentLocationBuffer;
+            public string ParentLocationBuffer
+            {
+                get
+                {
+                    if (ParentResolved)
+                    {
+                        return Marshal.PtrToStringUni(_ParentLocationBuffer);
+                    }
+                    else
+                    {
+                        return String.Empty;
+                    }
+                }
+            }
         }
 
-        public struct PhysicalDisk
+        [StructLayout(LayoutKind.Explicit, Size = 12, Pack = 4, CharSet = CharSet.Unicode)] // check size
+        public struct PhysicalDiskUnion
         {
+            [FieldOffset(0)]
             public UInt32 LogicalSectorSize;
+            [FieldOffset(4)]
             public UInt32 PhysicalSectorSize;
+            [FieldOffset(8)]
             public bool IsRemote;
         };
 
-        public struct Size
+        [StructLayout(LayoutKind.Explicit, Size = 24, Pack = 4, CharSet = CharSet.Unicode)] // check size
+        public struct SizeUnion
         {
+            [FieldOffset(0)]
             public UInt64 VirtualSize;
+            [FieldOffset(8)]
             public UInt64 PhysicalSize;
+            [FieldOffset(16)]
             public UInt32 BlockSize;
+            [FieldOffset(20)]
             public UInt32 SectorSize;
         };
 
 //        [StructLayout(LayoutKind.Explicit, Size = 12, Pack =4)] // check size
-        [StructLayout(LayoutKind.Sequential, Size = 12, Pack = 1, CharSet =CharSet.Unicode)] // check size
-        public struct ChangeTracking
+        [StructLayout(LayoutKind.Explicit, Size = 12, Pack = 4, CharSet =CharSet.Unicode)] // check size
+        public struct ChangeTrackingUnion
         {
-            public UInt32 Enabled;    // is really a bool put UInt32 to prevent alignment exception
-            public UInt32 NewerChanges; // is really a bool put UInt32 to prevent alignment exception
+            [FieldOffset(0)]
+            private int _Enabled;    // bool is not a blittable type
+            [FieldOffset(4)]
+            private int _NewerChanges; // bool is not a blittable type
+            [FieldOffset(8)]
             public char MostRecentId;
-            private byte padding1;
-            private byte padding2;
+            public bool Enabled
+            {
+                get { return _Enabled > 0;  }
+            }
+            public bool NewerChanges
+            {
+                get { return _NewerChanges > 0; }
+            }
+
         }
 
         // Versioned parameter structure for GetVirtualDiskInformation
@@ -212,16 +249,21 @@ namespace CompactVirtualDisk
             public GET_VIRTUAL_DISK_INFO_VERSION Version;
             // union starts here 
             [FieldOffset(8)]
-            public Size size;
+            public SizeUnion Size;
 
             [FieldOffset(8)]
+//            [MarshalAs(UnmanagedType.LPStruct)]
             public Guid Identifier;
 
+//            [FieldOffset(8)]
+//            public _GUID _Identifier;
+
             [FieldOffset(8)]
-            public ParentLocation parentLocation;
+            public ParentLocationUnion ParentLocation;
 
             [FieldOffset(8)]
             public Guid ParentIdentifier;
+
             [FieldOffset(8)]
             public UInt32 ParentTimestamp;
 
@@ -238,7 +280,7 @@ namespace CompactVirtualDisk
             public bool IsLoaded;
 
             [FieldOffset(8)]
-            public PhysicalDisk physicalDisk;
+            public PhysicalDiskUnion PhysicalDisk;
 
             [FieldOffset(8)]
             public UInt32 VhdPhysicalSectorSize;
@@ -254,7 +296,7 @@ namespace CompactVirtualDisk
             public Guid VirtualDiskId;
 
             [FieldOffset(8)]
-            ChangeTracking changeTracking;
+            public ChangeTrackingUnion ChangeTracking;
 
         }
 
@@ -274,12 +316,12 @@ namespace CompactVirtualDisk
         // Versioned structure for CompactVirtualDisk
         public struct Version1Union
         {
-            UInt32 Reserved;
+            public UInt32 Reserved;
         }
         public struct COMPACT_VIRTUAL_DISK_PARAMETERS
         {
-            COMPACT_VIRTUAL_DISK_VERSION Version;
-            Version1Union Version1;
+            public COMPACT_VIRTUAL_DISK_VERSION Version;
+            public Version1Union Version1;
         };
 
 
