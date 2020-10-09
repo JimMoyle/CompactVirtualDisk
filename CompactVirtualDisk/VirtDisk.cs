@@ -194,7 +194,7 @@ namespace CompactVirtualDisk
         };
 
 //        [StructLayout(LayoutKind.Explicit, Size = 12, Pack =4)] // check size
-        [StructLayout(LayoutKind.Sequential, Size = 12, Pack = 1)] // check size
+        [StructLayout(LayoutKind.Sequential, Size = 12, Pack = 1, CharSet =CharSet.Unicode)] // check size
         public struct ChangeTracking
         {
             public UInt32 Enabled;    // is really a bool put UInt32 to prevent alignment exception
