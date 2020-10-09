@@ -4,9 +4,29 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
+using System.Security.Permissions;
 
 namespace CompactVirtualDisk
 {
+    [SecurityPermission(SecurityAction.Demand)]
+    public class VirtualDiskSafeHandle : SafeHandle
+    {
+        public VirtualDiskSafeHandle() : base(IntPtr.Zero, true) { }
+
+        public override bool IsInvalid => IsClosed || (handle == IntPtr.Zero);
+
+        public bool IsOpen => !IsInvalid;
+
+        protected override bool ReleaseHandle()
+        {
+            return VirtDisk.CloseHandle(handle);
+        }
+
+        public override string ToString()
+        {
+            return handle.ToString();
+        }
+    }
     class VirtDisk
     {
         public const UInt32 ERROR_SUCCESS = 0;
@@ -173,6 +193,17 @@ namespace CompactVirtualDisk
             public UInt32 SectorSize;
         };
 
+//        [StructLayout(LayoutKind.Explicit, Size = 12, Pack =4)] // check size
+        [StructLayout(LayoutKind.Sequential, Size = 12, Pack = 1)] // check size
+        public struct ChangeTracking
+        {
+            public UInt32 Enabled;    // is really a bool put UInt32 to prevent alignment exception
+            public UInt32 NewerChanges; // is really a bool put UInt32 to prevent alignment exception
+            public char MostRecentId;
+            private byte padding1;
+            private byte padding2;
+        }
+
         // Versioned parameter structure for GetVirtualDiskInformation
         [StructLayout(LayoutKind.Explicit, Size = 32)] // check size
         public struct GET_VIRTUAL_DISK_INFO
@@ -220,8 +251,11 @@ namespace CompactVirtualDisk
 
             // GET_VIRTUAL_DISK_INFO_VIRTUAL_DISK_ID
             [FieldOffset(8)]
-            public Guid VirtualDiskId;          
-            
+            public Guid VirtualDiskId;
+
+            [FieldOffset(8)]
+            ChangeTracking changeTracking;
+
         }
 
         //
