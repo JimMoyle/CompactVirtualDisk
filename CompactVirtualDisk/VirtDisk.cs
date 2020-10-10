@@ -385,14 +385,14 @@ namespace CompactVirtualDisk
         [DllImport("VirtDisk.dll", CharSet = CharSet.Unicode, SetLastError = false)]
         public static extern UInt32 GetVirtualDiskInformation(
             VirtualDiskSafeHandle VirtualDiskHandle,
-            ref ulong VirtualDiskInfoSize,
+            ref UInt32 VirtualDiskInfoSize,
             ref GET_VIRTUAL_DISK_INFO VirtualDiskInfo,
-            ref ulong SizeUsed);
+            ref UInt32 SizeUsed);
 
         [DllImport("VirtDisk.dll", CharSet = CharSet.Unicode, SetLastError = false)]
         public static extern UInt32 GetVirtualDiskInformation(
             VirtualDiskSafeHandle VirtualDiskHandle,
-            ref ulong VirtualDiskInfoSize,
+            ref UInt32 VirtualDiskInfoSize,
             ref GET_VIRTUAL_DISK_INFO VirtualDiskInfo,
             IntPtr SizeUsed);// to make it optional (pass IntPtr.Zero)
 
