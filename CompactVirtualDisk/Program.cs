@@ -234,10 +234,16 @@ namespace CompactVirtualDisk
 
             }
         }
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
+            if (args.Length == 0)
+            {
+                Console.WriteLine("Please specify Filename as an argument (path to vhd/vhdx file)");
+                return 1;
+            }
+
             bool bRes;
-            string Filename = @"C:\Temp\vhdx\test.vhdx";
+            string Filename = args[0];
 
             // dump virtual disk info
             PrintVirtualDiskInfo(Filename);
@@ -249,6 +255,8 @@ namespace CompactVirtualDisk
             // compact virtual disk without FileSystemAware option
             bRes = CompactVHD(Filename, false);
             Console.WriteLine("Compact(False): {0}", bRes);
+
+            return 0;
         }
     }
 }
